@@ -47,7 +47,7 @@ export function DailyView({
         )}
       </div>
 
-      <div className="max-h-[600px] overflow-y-auto">
+      <div className="max-h-[600px] overflow-y-auto scrollbar-hide">
         {hours.map((hour) => (
           <div
             key={hour}

@@ -8,6 +8,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Event, EVENT_COLORS } from "../../types";
+import toast from "react-hot-toast";
 
 interface EventModalProps {
   isOpen: boolean;
@@ -40,7 +41,6 @@ export function EventModal({
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
   const [color, setColor] = useState<string>(EVENT_COLORS[0].value);
   const [showOverlapWarning, setShowOverlapWarning] = useState(false);
@@ -53,17 +53,18 @@ export function EventModal({
       const endDateTime = new Date(event.end_time);
       setStartDate(startDateTime.toISOString().split("T")[0]);
       setStartTime(startDateTime.toTimeString().slice(0, 5));
-      setEndDate(endDateTime.toISOString().split("T")[0]);
       setEndTime(endDateTime.toTimeString().slice(0, 5));
       setColor(event.color);
     } else if (initialDate) {
-      const date = initialDate.toISOString().split("T")[0];
-      const hour = initialHour || new Date().getHours();
-      setStartDate(date);
-      setStartTime(hour.toString().padStart(2, "0") + ":00");
-      setEndDate(date);
-      setEndTime((hour + 1).toString().padStart(2, "0") + ":00");
-      setColor(EVENT_COLORS[0].value);
+      const safeDate = new Date(initialDate);
+      if (!isNaN(safeDate.getTime())) {
+        const date = safeDate.toISOString().split("T")[0];
+        const hour = initialHour ?? new Date().getHours();
+        setStartDate(date);
+        setStartTime(hour.toString().padStart(2, "0") + ":00");
+        setEndTime((hour + 1).toString().padStart(2, "0") + ":00");
+        setColor(EVENT_COLORS[0].value);
+      }
     }
 
     setShowOverlapWarning(overlappingEvents.length > 0);
@@ -71,8 +72,25 @@ export function EventModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!startDate || !startTime || !endTime) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
     const startDateTime = new Date(`${startDate}T${startTime}`);
-    const endDateTime = new Date(`${endDate}T${endTime}`);
+    const endDateTime = new Date(`${startDate}T${endTime}`);
+
+    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+      toast.error("Invalid date or time format");
+      return;
+    }
+
+    if (startDateTime >= endDateTime) {
+      toast.error("Start time must be before end time");
+      return;
+    }
+
     const eventData = {
       title,
       description: description || null,
@@ -84,14 +102,17 @@ export function EventModal({
 
     if (event && onUpdate) {
       onUpdate(event.id, eventData);
+      toast.success("Event updated successfully 💾");
     } else {
       onSave(eventData);
+      toast.success("Event added successfully 🎉");
     }
   };
 
   const handleDelete = () => {
     if (event && onDelete) {
       onDelete(event.id);
+      toast.success("Event deleted 🗑️");
       onClose();
     }
   };
@@ -101,7 +122,6 @@ export function EventModal({
     setDescription("");
     setStartDate("");
     setStartTime("");
-    setEndDate("");
     setEndTime("");
     setColor(EVENT_COLORS[0].value);
     setShowOverlapWarning(false);
@@ -112,7 +132,7 @@ export function EventModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-background rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-background rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto scrollbar-hide">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-primary">
@@ -199,20 +219,21 @@ export function EventModal({
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-primary mb-2">
+                <CalendarDays className="w-4 h-4 inline mr-2" />
+                Date
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-2 border border-primary rounded-lg focus:ring-2 focus:ring-primary"
+                required
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-primary mb-2">
-                  <CalendarDays className="w-4 h-4 inline mr-2" />
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-primary rounded-lg focus:ring-2 focus:ring-primary"
-                  required
-                />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-primary mb-2">
                   <Clock className="w-4 h-4 inline mr-2" />
@@ -226,21 +247,7 @@ export function EventModal({
                   required
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-primary mb-2">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-primary rounded-lg focus:ring-2 focus:ring-primary"
-                  required
-                />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-primary mb-2">
                   End Time

@@ -2,6 +2,7 @@ import React from "react";
 import { AuthForm } from "./components/Auth/AuthForm";
 import Dashboard from "./components/Dashboard/Dashboard";
 import { useAuth } from "./hooks/useAuth";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   const { user, loading } = useAuth();
@@ -14,7 +15,12 @@ function App() {
     );
   }
 
-  return user ? <Dashboard /> : <AuthForm />;
+  return (
+    <>
+      <Toaster position="top-right" reverseOrder={false} />
+      {user ? <Dashboard /> : <AuthForm />}
+    </>
+  );
 }
 
 export default App;
